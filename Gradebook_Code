@@ -1,231 +1,303 @@
+package DSAProject;
+import java.text.SimpleDateFormat;
 import java.util.*;
 
-class Student {
-    int id;
-    String name;
+class User {
+    private String username;
+    private String role;
 
-    Student(int id, String name) {
-        this.id = id;
-        this.name = name;
+    public User(String username, String role) {
+        this.username = username;
+        this.role = role;
     }
 
-    @Override
-    public String toString() {//what is happening here?
-        return id + " - " + name;
+    public String getUsername() {
+        return username;
+    }
+
+    public String getRole() {
+        return role;
+    }
+}
+
+class Student {
+    private int id;
+    private String name;
+    private String email;
+    private String gradeLevel;
+    private HashMap<String, Double> grades; // Subject -> Grade
+
+    public Student(int id, String name, String email, String gradeLevel) {
+        this.id = id;
+        this.name = name;
+        this.email = email;
+        this.gradeLevel = gradeLevel;
+        this.grades = new HashMap<>();
+    }
+
+    public int getId() {
+        return id;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public String getGradeLevel() {
+        return gradeLevel;
+    }
+
+    public HashMap<String, Double> getGrades() {
+        return grades;
+    }
+
+    public void addGrade(String subject, Double grade) {
+        grades.put(subject, grade);
     }
 }
 
 class Subject {
-    String subjectName;
+    private String name;
+    private String teacher;
 
-    Subject(String subjectName) {
-        this.subjectName = subjectName;
+    public Subject(String name, String teacher) {
+        this.name = name;
+        this.teacher = teacher;
     }
 
-    @Override
-    public String toString() {
-        return subjectName;
+    public String getName() {
+        return name;
+    }
+
+    public String getTeacher() {
+        return teacher;
     }
 }
 
 class Assignment {
-    String title;
-    double weightage;
+    private String title;
+    private String subject;
+    private double weightage;
+    private Date dueDate;
 
-    Assignment(String title, double weightage) {
+    public Assignment(String title, String subject, double weightage, Date dueDate) {
         this.title = title;
+        this.subject = subject;
         this.weightage = weightage;
+        this.dueDate = dueDate;
     }
 
-    @Override
-    public String toString() {
-        return title + " (Weight: " + weightage + ")";
+    public String getTitle() {
+        return title;
+    }
+
+    public String getSubject() {
+        return subject;
+    }
+
+    public double getWeightage() {
+        return weightage;
+    }
+
+    public Date getDueDate() {
+        return dueDate;
     }
 }
 
-class Grade {
-    double score;
+public class GradebookApp {
+    private HashMap<Integer, Student> students = new HashMap<>();
+    private HashMap<String, Subject> subjects = new HashMap<>();
+    private LinkedList<Assignment> assignments = new LinkedList<>();
+    private User currentUser;
 
-    Grade(double score) {
-        this.score = score;
+    public void authenticate(Scanner scanner) {
+        System.out.print("Enter username: ");
+        String username = scanner.nextLine();
+        System.out.print("Enter role (Admin/Teacher/Student): ");
+        String role = scanner.nextLine();
+        currentUser = new User(username, role);
+        System.out.println("Welcome, " + username + "! Role: " + role);
     }
 
-    @Override
-    public String toString() {
-        return "Score: " + score;
+    public boolean hasPermission(String... allowedRoles) {
+        if (currentUser == null) return false;
+        for (String role : allowedRoles) {
+            if (currentUser.getRole().equalsIgnoreCase(role)) {
+                return true;
+            }
+        }
+        return false;
     }
-}
 
-public class Gradebook {
-    // Data storage
-    Map<Integer, Student> students = new HashMap<>();
-    Map<String, Subject> subjects = new HashMap<>();
-    Map<String, List<Assignment>> subjectAssignments = new HashMap<>();
-    Map<String, Map<Integer, Map<String, Grade>>> grades = new HashMap<>();
-
-    // Add student
     public void addStudent(Scanner scanner) {
+        if (!hasPermission("Admin", "Teacher")) {
+            System.out.println("Permission Denied: Only Admins or Teachers can add students.");
+            return;
+        }
+
         System.out.print("Enter student ID: ");
         int id = scanner.nextInt();
-        scanner.nextLine(); // Consume newline
+        scanner.nextLine();
         System.out.print("Enter student name: ");
         String name = scanner.nextLine();
-        students.put(id, new Student(id, name));
+        System.out.print("Enter email: ");
+        String email = scanner.nextLine();
+        System.out.print("Enter grade level: ");
+        String gradeLevel = scanner.nextLine();
+
+        students.put(id, new Student(id, name, email, gradeLevel));
         System.out.println("Student added successfully!");
     }
 
-    // Delete student
-    public void deleteStudent(Scanner scanner) {
-        System.out.print("Enter student ID to delete: ");
-        int id = scanner.nextInt();
-        if (students.remove(id) != null) {
-            System.out.println("Student deleted successfully!");
-        } else {
-            System.out.println("Student not found!");
-        }
-    }
-
-    // Add subject
     public void addSubject(Scanner scanner) {
+        if (!hasPermission("Admin")) {
+            System.out.println("Permission Denied: Only Admins can add subjects.");
+            return;
+        }
+
         System.out.print("Enter subject name: ");
         String name = scanner.nextLine();
-        subjects.put(name, new Subject(name));
-        subjectAssignments.put(name, new ArrayList<>());
-        grades.put(name, new HashMap<>());
+        System.out.print("Enter teacher name: ");
+        String teacher = scanner.nextLine();
+
+        subjects.put(name, new Subject(name, teacher));
         System.out.println("Subject added successfully!");
     }
 
-    // Add assignment
     public void addAssignment(Scanner scanner) {
+        if (!hasPermission("Teacher", "Admin")) {
+            System.out.println("Permission Denied: Only Teachers or Admins can add assignments.");
+            return;
+        }
+
+        System.out.print("Enter assignment title: ");
+        String title = scanner.nextLine();
         System.out.print("Enter subject name: ");
-        String subjectName = scanner.nextLine();
-        if (!subjects.containsKey(subjectName)) {
+        String subject = scanner.nextLine();
+        if (!subjects.containsKey(subject)) {
             System.out.println("Subject not found!");
             return;
         }
-        System.out.print("Enter assignment title: ");
-        String title = scanner.nextLine();
-        System.out.print("Enter assignment weightage: ");
+        System.out.print("Enter weightage: ");
         double weightage = scanner.nextDouble();
-        scanner.nextLine(); // Consume newline
-        subjectAssignments.get(subjectName).add(new Assignment(title, weightage));
+        scanner.nextLine();
+
+        System.out.print("Enter due date (yyyy-MM-dd): ");
+        String dueDateStr = scanner.nextLine();
+        Date dueDate;
+        try {
+            SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+            dateFormat.setLenient(false); // Ensure strict parsing
+            dueDate = dateFormat.parse(dueDateStr);
+        } catch (Exception e) {
+            System.out.println("Invalid date format! Please enter in yyyy-MM-dd format.");
+            return;
+        }
+
+        assignments.add(new Assignment(title, subject, weightage, dueDate));
         System.out.println("Assignment added successfully!");
     }
 
-    // Record grade
     public void recordGrade(Scanner scanner) {
-        System.out.print("Enter subject name: ");
-        String subjectName = scanner.nextLine();
-        if (!subjects.containsKey(subjectName)) {
-            System.out.println("Subject not found!");
+        if (!hasPermission("Teacher", "Admin")) {
+            System.out.println("Permission Denied: Only Teachers or Admins can record grades.");
             return;
         }
+
         System.out.print("Enter student ID: ");
         int studentId = scanner.nextInt();
-        scanner.nextLine(); // Consume newline
-        if (!students.containsKey(studentId)) {
-            System.out.println("Student not found!");
-            return;
-        }
-        System.out.print("Enter assignment title: ");
-        String assignmentTitle = scanner.nextLine();
-        System.out.print("Enter grade (score): ");
-        double score = scanner.nextDouble();
-        grades.get(subjectName)
-                .computeIfAbsent(studentId, k -> new HashMap<>())
-                .put(assignmentTitle, new Grade(score));
-        System.out.println("Grade recorded successfully!");
-    }
-
-    // Calculate final grade
-    public double calculateFinalGrade(String subjectName, int studentId) {
-        List<Assignment> assignments = subjectAssignments.get(subjectName);
-        Map<String, Grade> studentGrades = grades.get(subjectName).get(studentId);
-
-        if (assignments == null || studentGrades == null) {
-            return 0.0;
-        }
-
-        double totalWeight = 0;
-        double weightedScore = 0;
-
-        for (Assignment assignment : assignments) {
-            Grade grade = studentGrades.get(assignment.title);
-            if (grade != null) {
-                weightedScore += grade.score * assignment.weightage;
-                totalWeight += assignment.weightage;
-            }
-        }
-
-        return totalWeight > 0 ? (weightedScore / totalWeight) : 0.0;
-    }
-
-    // Print grade report
-    public void printGradeReport(Scanner scanner) {
-        System.out.print("Enter student ID: ");
-        int studentId = scanner.nextInt();
-        scanner.nextLine(); // Consume newline
+        scanner.nextLine();
         Student student = students.get(studentId);
         if (student == null) {
             System.out.println("Student not found!");
             return;
         }
 
-        System.out.println("Grade Report for " + student.name + ":");
-        for (String subjectName : subjects.keySet()) {
-            double finalGrade = calculateFinalGrade(subjectName, studentId);
-            System.out.println("- " + subjectName + ": " + finalGrade);
+        System.out.print("Enter subject: ");
+        String subject = scanner.nextLine();
+        if (!subjects.containsKey(subject)) {
+            System.out.println("Subject not found!");
+            return;
+        }
+
+        System.out.print("Enter grade: ");
+        double grade = scanner.nextDouble();
+        scanner.nextLine();
+
+        student.addGrade(subject, grade);
+        System.out.println("Grade recorded successfully!");
+    }
+
+
+    public void viewDashboard() {
+        System.out.println("\n--- Dashboard ---");
+        System.out.println("Total Students: " + students.size());
+        System.out.println("Total Subjects: " + subjects.size());
+        System.out.println("Total Assignments: " + assignments.size());
+    }
+
+    public void generateGradeReport(Scanner scanner) {
+        if (!hasPermission("Teacher", "Admin", "Student")) {
+            System.out.println("Permission Denied: Only Teachers, Admins, and Students can view grade reports.");
+            return;
+        }
+
+        System.out.print("Enter student ID: ");
+        int studentId = scanner.nextInt();
+        scanner.nextLine();
+        Student student = students.get(studentId);
+        if (student == null) {
+            System.out.println("Student not found!");
+            return;
+        }
+
+        System.out.println("\nGrade Report for " + student.getName() + ":");
+        for (Map.Entry<String, Double> entry : student.getGrades().entrySet()) {
+            System.out.println("Subject: " + entry.getKey() + ", Grade: " + entry.getValue());
         }
     }
 
-    // Main menu
+
     public void menu() {
         Scanner scanner = new Scanner(System.in);
+        authenticate(scanner);
+
         while (true) {
             System.out.println("\n--- Gradebook Menu ---");
             System.out.println("1. Add Student");
-            System.out.println("2. Delete Student");
-            System.out.println("3. Add Subject");
-            System.out.println("4. Add Assignment");
-            System.out.println("5. Record Grade");
-            System.out.println("6. Print Grade Report");
+            System.out.println("2. Add Subject");
+            System.out.println("3. Add Assignment");
+            System.out.println("4. Record Grade");
+            System.out.println("5. View Dashboard");
+            System.out.println("6. Generate Grade Report");
             System.out.println("7. Exit");
             System.out.print("Choose an option: ");
             int choice = scanner.nextInt();
-            scanner.nextLine(); // Consume newline
+            scanner.nextLine();
 
             switch (choice) {
-                case 1:
-                    addStudent(scanner);
-                    break;
-                case 2:
-                    deleteStudent(scanner);
-                    break;
-                case 3:
-                    addSubject(scanner);
-                    break;
-                case 4:
-                    addAssignment(scanner);
-                    break;
-                case 5:
-                    recordGrade(scanner);
-                    break;
-                case 6:
-                    printGradeReport(scanner);
-                    break;
-                case 7:
+                case 1 -> addStudent(scanner);
+                case 2 -> addSubject(scanner);
+                case 3 -> addAssignment(scanner);
+                case 4 -> recordGrade(scanner);
+                case 5 -> viewDashboard();
+                case 6 -> generateGradeReport(scanner);
+                case 7 -> {
                     System.out.println("Exiting...");
                     scanner.close();
                     return;
-                default:
-                    System.out.println("Invalid choice! Please try again.");
+                }
+                default -> System.out.println("Invalid choice! Please try again.");
             }
         }
     }
 
-    // Main method
     public static void main(String[] args) {
-        Gradebook gradebook = new Gradebook();
-        gradebook.menu();
+        GradebookApp app = new GradebookApp();
+        app.menu();
     }
 }
